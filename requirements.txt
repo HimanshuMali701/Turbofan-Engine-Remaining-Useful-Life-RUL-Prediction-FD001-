@@ -1,8 +1,9 @@
 streamlit
-pandas
+joblib
 numpy
-scikit-learn
+pandas
 matplotlib
 seaborn
-joblib
-plotly
+requests
+huggingface_hub
+scikit-learn==1.4.2
