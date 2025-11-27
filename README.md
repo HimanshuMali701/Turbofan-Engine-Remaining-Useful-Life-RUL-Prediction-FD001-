@@ -1,3 +1,5 @@
+🔗 Live Demo (Streamlit): https://turbofan-engine-remaining-useful-life-rul-prediction-fd001.streamlit.app/
+
 # Turbofan Engine Remaining Useful Life (RUL) Prediction — FD001
 
 This project implements a **Predictive Maintenance** pipeline for turbofan engines using the **NASA CMAPSS FD001** dataset.  
@@ -116,6 +118,11 @@ Test:
 
 Feature importance analysis showed that sensors such as s11, s4, s9, s12 and s7 contribute most to the RUL prediction.
 ```
+> ⚠️ Note:  
+> The trained RandomForest model (`rf_model_FD001.joblib`) is **NOT stored in this repo** because the file size (~267 MB) exceeds GitHub’s 100 MB file limit.  
+> Instead, it is securely hosted on **HuggingFace Hub** and downloaded automatically during app runtime using `huggingface_hub`.
+
+
 ⚠ Dataset is not included due to licensing and size. 
 Download CMAPSS FD001 from NASA PCoE:
 https://drive.google.com/file/d/1zfqvs8-mAO6E0JpgvhBdueNx8Th03pUp/view?usp=sharing 
