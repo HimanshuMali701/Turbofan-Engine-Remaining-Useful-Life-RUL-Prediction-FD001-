@@ -6,4 +6,4 @@ matplotlib
 seaborn
 requests
 huggingface_hub
-scikit-learn==1.4.2
+scikit-learn
