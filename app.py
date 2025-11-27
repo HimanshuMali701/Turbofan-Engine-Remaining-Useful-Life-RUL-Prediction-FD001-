@@ -5,40 +5,21 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
 import joblib
-import requests  # ✅ NEW
+
+from huggingface_hub import hf_hub_download  # ✅ download model from HF
 
 # -----------------------------
 # CONFIG
 # -----------------------------
-DATA_DIR = "."          # current folder
+DATA_DIR = "."
 DATASET_ID = "FD001"
 
 PROCESSED_TRAIN = os.path.join(DATA_DIR, f"processed_{DATASET_ID}_train.csv")
 SCALER_PATH = os.path.join(DATA_DIR, f"scaler_{DATASET_ID}.joblib")
 
-# Name of model file on disk (after download)
-MODEL_PATH = os.path.join(DATA_DIR, f"rf_model_{DATASET_ID}.joblib")
-
-MODEL_URL = "https://huggingface.co/HimanshuMali/turbofan-rul-rf-model/blob/main/rf_model_FD001.joblib"
-
-
-# -----------------------------
-# HELPERS FOR DOWNLOADING MODEL
-# -----------------------------
-def download_file_if_missing(local_path: str, url: str):
-    """
-    Download file from `url` to `local_path` if it does not exist.
-    """
-    if os.path.exists(local_path):
-        return
-
-    # Show progress in Streamlit
-    with st.spinner("Downloading model file... this is done only once."):
-        resp = requests.get(url)
-        resp.raise_for_status()
-
-        with open(local_path, "wb") as f:
-            f.write(resp.content)
+# 🔐 HuggingFace model repo info
+HF_REPO_ID = "HimanshuMali/turbofan-rul-rf-model"
+HF_MODEL_FILENAME = "rf_model_FD001.joblib"
 
 
 # -----------------------------
@@ -51,11 +32,19 @@ def load_processed_train():
 
 @st.cache_resource
 def load_model_and_scaler():
-    # Make sure model file exists (download if needed)
-    download_file_if_missing(MODEL_PATH, MODEL_URL)
+    # ✅ Download model from HuggingFace (only once, then cached)
+    model_path = hf_hub_download(
+        repo_id=HF_REPO_ID,
+        filename=HF_MODEL_FILENAME,
+        repo_type="model",
+    )
 
+    # Load scaler from local file in repo
     scaler = joblib.load(SCALER_PATH)
-    model = joblib.load(MODEL_PATH)
+
+    # Load model from downloaded path
+    model = joblib.load(model_path)
+
     return model, scaler
 
 
@@ -63,20 +52,13 @@ def load_model_and_scaler():
 # HELPER: get feature columns
 # -----------------------------
 def get_feature_columns(df):
-    # features = all 'os*' and 's*' columns used for training
     feature_cols = [c for c in df.columns if c.startswith("os") or c.startswith("s")]
     return feature_cols
 
 
 def predict_rul_for_row(model, scaler, feature_cols, feature_values_dict):
-    """
-    feature_values_dict: {col_name: value, ...} for all feature_cols
-    """
-    # Ensure order of columns
     x = np.array([[feature_values_dict[c] for c in feature_cols]], dtype=float)
-    # Scale using same scaler
     x_scaled = scaler.transform(x)
-    # Predict
     y_pred = model.predict(x_scaled)[0]
     return y_pred
 
@@ -91,7 +73,6 @@ def main():
         layout="wide"
     )
 
-    # --------- HEADER -----------
     st.markdown(
         "<h2 style='text-align: center;'>Turbofan Engine RUL Prediction — FD001</h2>",
         unsafe_allow_html=True
@@ -102,13 +83,11 @@ def main():
         "of a turbofan engine."
     )
 
-    # --------- LOAD DATA & MODEL -----------
     with st.spinner("Loading data and model..."):
         train_df = load_processed_train()
         model, scaler = load_model_and_scaler()
         feature_cols = get_feature_columns(train_df)
 
-    # Top summary cards
     c1, c2, c3 = st.columns(3)
     with c1:
         st.metric("Training rows", f"{len(train_df):,}")
@@ -119,7 +98,6 @@ def main():
 
     st.markdown("---")
 
-    # ------------ TABS ------------
     tab_sample, tab_custom, tab_importance, tab_about = st.tabs([
         "🔎 Sample from dataset",
         "🧪 Custom input",
@@ -198,8 +176,7 @@ def main():
             "RandomForest model's RUL predictions."
         )
 
-        fig, ax = plt.subplots(figsize=(4, 2.5), dpi=80)  # small & compact
-
+        fig, ax = plt.subplots(figsize=(4, 2.5), dpi=80)
         top_feats = feat_imp.head(8)
         sns.barplot(x=top_feats.values, y=top_feats.index, ax=ax)
 
@@ -207,7 +184,6 @@ def main():
         ax.set_xlabel("Importance", fontsize=8)
         ax.set_ylabel("Feature", fontsize=8)
         ax.tick_params(axis='both', labelsize=8)
-
         plt.tight_layout()
 
         _, col, _ = st.columns([1, 3, 1])
